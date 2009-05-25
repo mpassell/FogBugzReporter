@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<classpath>
-	<classpathentry kind="src" path="src"/>
-	<classpathentry kind="con" path="GROOVY_SUPPORT"/>
-	<classpathentry kind="lib" path="lib/jcalendar.jar" sourcepath="C:/Java/sources/jcalendar-1.3.2-src.zip"/>
-	<classpathentry kind="lib" path="lib/looks.jar"/>
-	<classpathentry kind="output" path="bin-groovy"/>
-</classpath>
