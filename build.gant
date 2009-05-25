@@ -1,15 +1,15 @@
-Ant.property(file: 'build.properties')
-def antProps = Ant.project.properties
+ant.property(file: 'build.properties')
+def antProps = ant.project.properties
 sourceDirectory = 'src'
 buildDirectory = 'classes'
 libDir = 'lib'
 includeTargets << gant.targets.Clean
 cleanPattern << ['**/*~', '*.jar', '*.zip']
 cleanDirectory << buildDirectory
-clobberPattern << "${libDir}/${antProps.'groovy.jar'}"
+clobberPattern << "${libDir}/groovy-all.jar"
 
-Ant.taskdef(name : 'groovyc', classname : 'org.codehaus.groovy.ant.Groovyc')
-Ant.taskdef(resource : 'svntask.properties') {
+ant.taskdef(name : 'groovyc', classname : 'org.codehaus.groovy.ant.Groovyc')
+ant.taskdef(resource : 'org/tigris/subversion/svnant/svnantlib.xml') {
   classpath { fileset(dir:"${antProps.'svnant.home'}/lib", includes:'*.jar') }
 }
 
@@ -26,7 +26,7 @@ target(properties : 'Show all of the available properties') {
 
 target('create-jar' : 'Create the jar file') {
   depends(compile)
-  Ant.copy(file:"${antProps.'groovy.home'}/embeddable/${antProps.'groovy.jar'}",
+  ant.copy(file:"${antProps.'groovy.home'}/embeddable/groovy-all-1.6.2.jar",
            tofile:"$libDir/groovy-all.jar")
   jar(destfile:"${antProps.'project.name'}.jar", basedir:buildDirectory) {
     manifest {
@@ -39,11 +39,7 @@ target('create-jar' : 'Create the jar file') {
 
 target('package' : 'Package up the release') {
   depends('create-jar')
-  Ant.svn {
-    status(path : '.', revisionProperty : 'revision')
-  }
-  antProps = Ant.project.properties
-  zip(destfile : "${antProps.'project.name'}_rev${antProps.revision}.zip") {
+  zip(destfile : "${antProps.'project.name'}_revSomething.zip") {
     fileset(dir : '.') {
       include(name : '*.jar')
       include(name : 'lib/**')
