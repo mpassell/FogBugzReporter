@@ -13,11 +13,13 @@
             <attribute name="includes" default="${includes}"/>
             <attribute name="excludes" default="${excludes}"/>
             <attribute name="debug" default="${javac.debug}"/>
-            <attribute name="sourcepath" default="/does/not/exist"/>
-            <attribute name="gensrcdir" default="/does/not/exist"/>
+            <attribute name="sourcepath" default="${empty.dir}"/>
+            <attribute name="gensrcdir" default="${empty.dir}"/>
             <element name="customize" optional="true"/>
             <sequential>
                 <taskdef name="groovyc" classpath="${javac.classpath}" classname="org.codehaus.groovy.ant.Groovyc"/>
+                <property name="empty.dir" location="${build.dir}/empty"/>
+                <mkdir dir="${empty.dir}"/>
                 <groovyc srcdir="@{srcdir}" sourcepath="@{sourcepath}" destdir="@{destdir}" encoding="${source.encoding}" includes="@{includes}" excludes="@{excludes}">
                     <src>
                         <dirset dir="@{gensrcdir}" erroronmissingdir="false">

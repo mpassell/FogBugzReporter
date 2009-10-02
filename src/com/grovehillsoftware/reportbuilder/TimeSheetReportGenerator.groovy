@@ -25,7 +25,7 @@ import groovy.text.SimpleTemplateEngine
 class TimeSheetReportGenerator {
   String baseURL
   String logonToken
-  Map filterNameToIDMap
+  Map<String, String> filterNameToIDMap
   SimpleTemplateEngine engine
   
   String logon(String baseURL, String email, String password) {
@@ -35,31 +35,31 @@ class TimeSheetReportGenerator {
     logonToken = rootElem.token[0].text()
     filterNameToIDMap = buildFilterNameToIDMap()
     engine = new SimpleTemplateEngine()
-
+    
     return logonToken
   }
-
+  
   void outputReport(String filterName, Date startDate, Date endDate, String format,
-                    PrintWriter writer) {
+  PrintWriter writer) {
     String initialFilterID = filterName != null ? getCurrentFilterID() : null
     
     Map<String, String> matchingBugIDs = setFilterAndFindMatches(filterName)
     
     // FogBugz spits out dates as Z/UTC/GMT
     TimeZone fogBugzTimeZone = TimeZone.getTimeZone('GMT')
-
+    
     DateFormat fogBugzDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'")
     fogBugzDateFormat.setTimeZone(fogBugzTimeZone)
     TimeInterval requestedInterval =
       roundToMidnightAndConvertTimeZone(startDate, endDate, fogBugzTimeZone)
-
+    
     String searchStartString = fogBugzDateFormat.format(requestedInterval.start)
     String searchEndString = fogBugzDateFormat.format(requestedInterval.end)
-
+    
     Map<String, List<TimeInterval>> bugToIntervals = new TreeMap<String, List<TimeInterval>>()
-
+    
     String requestURLString = "$baseURL/api.asp?cmd=listIntervals&dtStart=$searchStartString"+
-      "&dtEnd=$searchEndString&token=$logonToken"
+        "&dtEnd=$searchEndString&token=$logonToken"
     def intervalElems = new XmlSlurper().parse(requestURLString).intervals.children()
     for (intervalElem in intervalElems) {
       String bugID = intervalElem.ixBug.text()
@@ -76,7 +76,7 @@ class TimeSheetReportGenerator {
       } catch (ParseException pe) {
         end = new Date()
       }
-
+      
       List<TimeInterval> tempIntervalList = bugToIntervals.get(bugID)
       if (tempIntervalList == null) {
         tempIntervalList = new ArrayList<TimeInterval>()
@@ -84,7 +84,7 @@ class TimeSheetReportGenerator {
       }
       tempIntervalList.add(new TimeInterval(start:start, end:end))
     }
-
+    
     if (format.equals('Readable')) {
       NumberFormat numFormat = NumberFormat.getInstance()
       numFormat.setMaximumFractionDigits(2)
@@ -110,7 +110,7 @@ class TimeSheetReportGenerator {
       bugToIntervals.each { caseNum, intervals ->
         intervals.each {
           writer << "$caseNum,${dateFormat.format(it.start)},${dateFormat.format(it.end)},"+
-                    "$it.durationInHours\n"
+          "$it.durationInHours\n"
         }
       }
     }
@@ -121,12 +121,12 @@ class TimeSheetReportGenerator {
       setCurrentFilterID(initialFilterID) //restore filter to original
     }
   }
-
+  
   private String getCurrentFilterID() {
     String requestURLString = "$baseURL/api.asp?token=$logonToken&cmd=search&max=1"
     return new XmlSlurper().parse(requestURLString).sFilter.text()
   }
-
+  
   private void setCurrentFilterID(String filterID) {
     String requestURLString = "$baseURL/api.asp?token=$logonToken&cmd=saveFilter&sFilter=$filterID"
     new URL(requestURLString).openStream()
@@ -148,41 +148,45 @@ class TimeSheetReportGenerator {
     
     return matchingBugIDs
   }
-
-  private Map buildFilterNameToIDMap() {
-    Map filterNameToIDMap = new HashMap()
+  
+  private Map<String, String> buildFilterNameToIDMap() {
+    Map<String, String> filterNameToIDMap = new HashMap<String, String>()
     String requestURLString = "$baseURL/api.asp?token=$logonToken&cmd=listFilters"
     def filterElems = new XmlSlurper().parse(requestURLString).filters.filter
     filterElems.each{ filterNameToIDMap[it.text()] = it.@sFilter.text() }
     
     return filterNameToIDMap
   }
-
+  
   private TimeInterval roundToMidnightAndConvertTimeZone(Date startDate, Date endDate,
                                                          TimeZone otherTimeZone) {
     TimeInterval returnVal = new TimeInterval()
-
+    
     Calendar localCalendar = Calendar.getInstance()
     Calendar gmtCalendar = Calendar.getInstance(otherTimeZone)
-
-    localCalendar.setTime(startDate)
-    localCalendar.set(Calendar.HOUR_OF_DAY, 0)
-    localCalendar.set(Calendar.MINUTE, 0)
-    localCalendar.set(Calendar.SECOND, 0)
+    
+    localCalendar.with {
+      setTime(startDate)
+      set(Calendar.HOUR_OF_DAY, 0)
+      set(Calendar.MINUTE, 0)
+      set(Calendar.SECOND, 0)
+    }
     gmtCalendar.setTimeInMillis(localCalendar.getTimeInMillis())
     returnVal.start = gmtCalendar.time
-
-    localCalendar.setTime(endDate)
-    localCalendar.set(Calendar.HOUR_OF_DAY, 0)
-    localCalendar.set(Calendar.MINUTE, 0)
-    localCalendar.set(Calendar.SECOND, 0)
-    localCalendar.add(Calendar.DATE, 1) //move to next day
+    
+    localCalendar.with {
+      setTime(endDate)
+      set(Calendar.HOUR_OF_DAY, 0)
+      set(Calendar.MINUTE, 0)
+      set(Calendar.SECOND, 0)
+      add(Calendar.DATE, 1) //move to next day
+    }
     gmtCalendar.timeInMillis = localCalendar.timeInMillis
     returnVal.end = gmtCalendar.time
-
+    
     return returnVal
   }
-
+  
   void logoff() {
     if (logonToken != null) {
       URL logoffURL = new URL("$baseURL/api.asp?cmd=logoff&token=$logonToken")
@@ -201,7 +205,7 @@ class TimeSheetReportGenerator {
 class TimeInterval {
   Date start
   Date end
-
+  
   double getDurationInHours() {
     return (end.time - start.time) / 3600000.0 // milliseconds per hour
   }
